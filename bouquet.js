@@ -1,10 +1,4 @@
-// ASCII lilies: the scene is painted with vector shapes onto a tiny offscreen
-// canvas (one pixel per character cell), then every pixel is redrawn as a
-// coloured ASCII glyph whose density follows the pixel's brightness.
-//
-// The bloom follows how cut lilies actually open: a bunch of tall leafy stems,
-// each ending in a cluster of long green buds. Buds swell and blush, then split
-// into six tepals that curl back to show the stamens. Some buds stay green.
+
 (() => {
   'use strict';
 
@@ -76,8 +70,6 @@
     return [x + Math.sin(T * 0.9 + y * 0.006) * 8 * lift + Math.sin(T * 0.43 + x * 0.004) * 4 * lift, y];
   }
 
-  // ---------- scene ----------
-  // Timeline (seconds): stems rise, leaves unfurl, buds swell and blush, then open one by one.
   const STEM_START = 0, STEM_DUR = 2.6;
   const LEAF_START = 1.0;
   const BUD_START = 2.2;
@@ -88,7 +80,6 @@
     const r = rng(11);
     const S = { stems: [], leaves: [], buds: [] };
 
-    // [top x, top y, side pedicels]
     const tops = [
       [310, 470, 2], [395, 360, 2], [500, 300, 3], [600, 350, 2],
       [700, 420, 2], [740, 500, 1], [350, 560, 1], [650, 560, 1],
@@ -100,7 +91,6 @@
       const stemRef = { pts: stem, start: STEM_START + r() * 0.4 };
       S.stems.push(stemRef);
 
-      // lance-shaped leaves spiral up the middle of each stem
       const n = 5 + Math.floor(r() * 3);
       for (let i = 0; i < n; i++) {
         const t = 0.22 + (i / n) * 0.5 + r() * 0.04;
@@ -111,7 +101,6 @@
         });
       }
 
-      // buds: one at the tip, the rest on short pedicels branching just below it
       S.buds.push({ stem, stemRef, at: 1, ped: null, dir: rad(-90 + lean + (r() - 0.5) * 10) });
       for (let k = 0; k < sides; k++) {
         const side = k % 2 ? 1 : -1;
@@ -125,7 +114,6 @@
       }
     }
 
-    // decide each bud's fate: about half open fully, a few only blush, the rest stay green
     const order = S.buds.map((_, i) => i).sort(() => r() - 0.5);
     order.forEach((idx, rank) => {
       const b = S.buds[idx];
@@ -149,7 +137,6 @@
     return S;
   }
 
-  // Ruscus and baby's breath fill out the bunch around the lilies.
   const RUSCUS_START = 0.6;
   const GYP_START = 2.4;
 
@@ -158,7 +145,6 @@
     S.ruscus = [];
     S.gyp = [];
 
-    // ruscus: long arching sprigs with glossy leaves alternating up the stem
     const sprig = (base, ang, len, start, depth) => {
       const end = [base[0] + Math.cos(ang) * len, base[1] + Math.sin(ang) * len];
       const bend = (r() - 0.5) * len * 0.3;
@@ -179,15 +165,12 @@
         }
       }
     };
-    // a few sprigs tucked behind the lilies, ending just inside the bouquet's outline
     for (const end of [[210, 560], [270, 340], [420, 215], [600, 205], [750, 320], [810, 560]]) {
       const base = [490 + r() * 20, 820 - r() * 40];
       const ang = Math.atan2(end[1] - base[1], end[0] - base[0]);
       sprig(base, ang, Math.hypot(end[0] - base[0], end[1] - base[1]), RUSCUS_START + r() * 0.8, 0);
     }
 
-    // baby's breath: thin stems that fork again and again into clouds of tiny white flowers
-    // small sprays tucked between the lilies, as in a florist's bouquet
     const clouds = [
       [340, 460], [660, 430], [500, 330], [280, 610], [740, 610],
       [450, 610], [590, 640], [400, 340], [620, 340], [520, 520],
@@ -220,7 +203,6 @@
     });
   }
 
-  // ---------- drawing ----------
   function strokeCurve(g, pts, from, upto, width, color) {
     if (upto <= from) return;
     const N = 36;
@@ -250,7 +232,6 @@
     g.save();
     g.translate(x, y);
     g.rotate(ang);
-    // the tip arches away from the stem
     const bend = lf.side * L * 0.18;
     g.beginPath();
     g.moveTo(0, 0);
@@ -271,8 +252,6 @@
     g.restore();
   }
 
-  // One tepal along +x. Closed, six of these overlap into the club-shaped bud;
-  // open, they fan out and their tips curl back.
   function tepal(g, L, W, color, edge, throat, vein, open, curl, spots, rnd) {
     const rc = smooth(0.45, 1, open);
     const tipX = L * (1 - 0.12 * rc), tipY = curl * W * 1.6 * rc;
@@ -329,7 +308,6 @@
     const petal = multi ? pal.petal[b.colorIdx % pal.petal.length] : pal.petal;
     const edge = pal.edge || mix(petal, '#ffffff', 0.25);
 
-    // bud colour: green → dusty pink as it matures → petal colour as it opens
     const budCol = mix('#9cc63e', pal.blush, blush);
     const color = mix(budCol, petal, smooth(0.05, 0.45, open));
     const edgeCol = mix(mix('#b4d860', pal.blush, blush), edge, smooth(0.05, 0.45, open));
@@ -354,7 +332,6 @@
       tepal(g, L * wob, W, color, edgeCol, throat, pal.vein, open, k === 0 ? 0.3 : Math.sign(k) || 1, pal.spots, b.rnd);
       g.restore();
     }
-    // stamens and pistil reach out once the tepals have parted
     const st = smooth(0.55, 1, open);
     if (st > 0) {
       for (let i = 0; i < 6; i++) {
@@ -450,13 +427,11 @@
     drawGyp(g, S, false);
     for (const st of S.stems) strokeCurve(g, st.pts, 0, stemProgress(st), 9, '#5a9a30');
     for (const lf of S.leaves) drawLeaf(g, lf);
-    // closed buds behind, then open flowers in the order they opened
     const sorted = S.buds.slice().sort((a, b) => budState(a).open - budState(b).open || (a.openAt - b.openAt || 0));
     for (const b of sorted) drawBud(g, b, pal);
     drawGyp(g, S, true);
   }
 
-  // ---------- ascii renderer ----------
   const screen = document.getElementById('screen');
   const sctx = screen.getContext('2d');
   const off = document.createElement('canvas');
@@ -487,7 +462,6 @@
   }
 
   function render(S, pal) {
-    // paint the scene into the low-res buffer, correcting for tall character cells
     const aspect = cellH / cellW;
     const sx = Math.min(cols / WORLD_W, (rows * aspect) / WORLD_H) * 0.96;
     octx.setTransform(1, 0, 0, 1, 0, 0);
@@ -501,7 +475,6 @@
     sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     sctx.fillStyle = '#000';
     sctx.fillRect(0, 0, screen.width, screen.height);
-    // soft glow of the same image underneath the glyphs, like a CRT bloom
     sctx.save();
     sctx.globalAlpha = 0.42;
     sctx.filter = `blur(${Math.round(cellH * 0.4)}px)`;
@@ -518,7 +491,6 @@
         const m = Math.max(r, g, b);
         if (m < 14) continue;
         const v = m / 255;
-        // a little shimmer so the glyphs feel alive
         const h = ((x * 73856093) ^ (y * 19349663) ^ (flick * 83492791)) >>> 0;
         const j = h % 7 === 0 ? (h & 8 ? 1 : -1) : 0;
         const idx = clamp(Math.round(Math.pow(v, 0.7) * n) + j, 1, n);
@@ -529,7 +501,6 @@
     }
   }
 
-  // ---------- loop ----------
   const S = buildScene();
   let palette = 0;
   let t0 = performance.now();
@@ -551,7 +522,6 @@
     if (e.key === 'p' || e.key === 'c') { palette = (palette + 1) % PALETTES.length; replay(); }
   });
 
-  // ?t=8 starts 8s into the bloom, ?p=1 picks a palette
   const q = new URLSearchParams(location.search);
   if (q.has('p')) palette = clamp(+q.get('p') | 0, 0, PALETTES.length - 1);
   if (q.has('t')) t0 = performance.now() - +q.get('t') * 1000;
